@@ -4,11 +4,11 @@ import requests
 from pypushdeer import PushDeer
 
 
-CHECKIN_URL = "https://glados.space/api/user/checkin"
-STATUS_URL = "https://glados.space/api/user/status"
+CHECKIN_URL = "https://glados.one/api/user/checkin"
+STATUS_URL = "https://glados.one/api/user/status"
 
-REFERER = "https://glados.space/console/checkin"
-ORIGIN = "https://glados.space"
+REFERER = "https://glados.one/console/checkin"
+ORIGIN = "https://glados.one"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
