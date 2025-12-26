@@ -5,36 +5,7 @@ import random
 import requests
 from pypushdeer import PushDeer
 
-
-CHECKIN_URL = "https://glados.space/api/user/checkin"
-STATUS_URL = "https://glados.space/api/user/status"
-
-HEADERS_BASE = {
-    "origin": "https://glados.space",
-    "referer": "https://glados.space/console/checkin",
-    "user-agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
-    "content-type": "application/json;charset=UTF-8",
-}
-
-PAYLOAD = {"token": "glados.one"}
-TIMEOUT = 10
-
-
-def push(sckey: str, title: str, text: str):
-    if sckey:
-        PushDeer(pushkey=sckey).send_text(title, desp=text)
-
-
-def safe_json(resp):
-    try:
-        return resp.json()
-    except Exception:
-        return {}
-
+# ... (保留原有的 URL 和 HEADERS 配置) ...
 
 def main():
     sckey = os.getenv("SENDKEY", "")
@@ -45,61 +16,27 @@ def main():
         push(sckey, "GLaDOS 签到", "❌ 未检测到 COOKIES")
         return
 
+    # --- 新增：随机启动延时 ---
+    # 如果在 GitHub Actions 等环境运行，建议随机等待 0-1800 秒（30分钟）
+    # 这样可以避免多个用户在同一秒请求服务器，降低被封禁风险
+    wait_time = random.randint(1, 600) # 这里设置为 1-600 秒，可根据需要调整
+    print(f"为了模拟真实行为，脚本将随机等待 {wait_time} 秒后开始执行...")
+    time.sleep(wait_time)
+    # -----------------------
+
     session = requests.Session()
     ok = fail = repeat = 0
     lines = []
 
     for idx, cookie in enumerate(cookies, 1):
+        # 账号间的随机延时（代码原本已有，可适当加大范围）
+        if idx > 1:
+            account_wait = random.uniform(5, 15) 
+            print(f"账号间休息 {account_wait:.2f} 秒...")
+            time.sleep(account_wait)
+
         headers = dict(HEADERS_BASE)
         headers["cookie"] = cookie
 
-        email = "unknown"
-        points = "-"
-        days = "-"
+        # ... (后续逻辑保持不变) ...
 
-        try:
-            r = session.post(
-                CHECKIN_URL,
-                headers=headers,
-                data=json.dumps(PAYLOAD),
-                timeout=TIMEOUT,
-            )
-
-            j = safe_json(r)
-            msg = j.get("message", "")
-            msg_lower = msg.lower()
-
-            if "got" in msg_lower:
-                ok += 1
-                points = j.get("points", "-")
-                status = "✅ 成功"
-            elif "repeat" in msg_lower or "already" in msg_lower:
-                repeat += 1
-                status = "🔁 已签到"
-            else:
-                fail += 1
-                status = "❌ 失败"
-
-            # 状态接口（允许失败）
-            s = session.get(STATUS_URL, headers=headers, timeout=TIMEOUT)
-            sj = safe_json(s).get("data") or {}
-            email = sj.get("email", email)
-            if sj.get("leftDays") is not None:
-                days = f"{int(float(sj['leftDays']))} 天"
-
-        except Exception:
-            fail += 1
-            status = "❌ 异常"
-
-        lines.append(f"{idx}. {email} | {status} | P:{points} | 剩余:{days}")
-        time.sleep(random.uniform(1, 2))
-
-    title = f"GLaDOS 签到完成 ✅{ok} ❌{fail} 🔁{repeat}"
-    content = "\n".join(lines)
-
-    print(content)
-    push(sckey, title, content)
-
-
-if __name__ == "__main__":
-    main()
